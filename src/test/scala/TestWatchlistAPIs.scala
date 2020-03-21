@@ -21,58 +21,8 @@ class TestWatchlistAPIs extends WordSpec with Matchers with ScalatestRouteTest w
     val usersDb: ActorRef = system.actorOf(Props[UserActor], "UserActor")
     implicit val timeout = Timeout(2 seconds)
 
-    val log = Logging(system.eventStream, "NowTvApp")
+    private val log = Logging(system.eventStream, "NowTvApp")
 
-    val myAsset: Asset =
-        Asset(
-            contentID = "new0n3",
-            name = "The Witcher",
-            description = "The witcher Geralt, a mutated monster hunter, struggles to find his place in a world in which people often prove more wicked than beasts."
-        )
-
-
-    val routes =
-        pathPrefix("api") {
-            pathPrefix(Segment / "asset") { accountID =>
-                post {
-                    log.info("Inside post!")
-                    entity(as[Asset]) {
-                        asset =>
-                            log.info(s"Logged asset to add$asset")
-                            complete((usersDb ? AddAsset(accountID, asset)).map(_ => StatusCodes.OK))
-                    }
-                } ~
-                  delete {
-                      log.info("Inside delete!")
-                      entity(as[Asset]) { asset =>
-                          log.info(s"Logged asset to remove $asset")
-                          complete((usersDb ? RemoveAsset(accountID, asset)).map(_ => StatusCodes.OK))
-                      }
-                  } ~
-                  (pathEndOrSingleSlash & get) {
-                      val userFuture =
-                          (usersDb ? FindUserAssets(accountID)).mapTo[Seq[Asset]]
-                      complete(userFuture)
-                  }
-            } ~
-              pathPrefix("library") {
-                  log.info("Inside library!")
-                  path(Segment) { assetId =>
-                      get {
-                          log.info(s"Logged requested id $assetId")
-                          val assetFuture = (assetsDb ? GetAsset(assetId)).mapTo[Option[Asset]]
-                          complete(assetFuture)
-                      }
-                  } ~
-                    (pathEndOrSingleSlash & get) {
-                        log.info("Inside library!")
-                        val allAssets =
-                            (assetsDb ? FindAllAssets)
-                              .mapTo[Seq[Asset]]
-                        complete(StatusCodes.OK -> allAssets)
-                    }
-              }
-        }
 
 
     "The Watchlist service" should {
@@ -120,5 +70,63 @@ class TestWatchlistAPIs extends WordSpec with Matchers with ScalatestRouteTest w
 
 
     }
+
+
+
+
+
+    private val myAsset: Asset =
+        Asset(
+            contentID = "new0n3",
+            name = "The Witcher",
+            description = "The witcher Geralt, a mutated monster hunter, struggles to find his place in a world in which people often prove more wicked than beasts."
+        )
+
+
+
+    private val routes =
+        pathPrefix("api") {
+            pathPrefix(Segment / "asset") { accountID =>
+                post {
+                    log.info("Inside post!")
+                    entity(as[Asset]) {
+                        asset =>
+                            log.info(s"Logged asset to add$asset")
+                            complete((usersDb ? AddAsset(accountID, asset)).map(_ => StatusCodes.OK))
+                    }
+                } ~
+                  delete {
+                      log.info("Inside delete!")
+                      entity(as[Asset]) { asset =>
+                          log.info(s"Logged asset to remove $asset")
+                          complete((usersDb ? RemoveAsset(accountID, asset)).map(_ => StatusCodes.OK))
+                      }
+                  } ~
+                  (pathEndOrSingleSlash & get) {
+                      val userFuture =
+                          (usersDb ? FindUserAssets(accountID)).mapTo[Seq[Asset]]
+                      complete(userFuture)
+                  }
+            } ~
+              pathPrefix("library") {
+                  log.info("Inside library!")
+                  path(Segment) { assetId =>
+                      get {
+                          log.info(s"Logged requested id $assetId")
+                          val assetFuture = (assetsDb ? GetAsset(assetId)).mapTo[Option[Asset]]
+                          complete(assetFuture)
+                      }
+                  } ~
+                    (pathEndOrSingleSlash & get) {
+                        log.info("Inside library!")
+                        val allAssets =
+                            (assetsDb ? FindAllAssets)
+                              .mapTo[Seq[Asset]]
+                        complete(StatusCodes.OK -> allAssets)
+                    }
+              }
+        }
+
+
 
 }
